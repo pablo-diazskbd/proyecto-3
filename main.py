@@ -28,6 +28,8 @@ def main():
     nombre_grupo = sys.argv[1]
     base_url = sys.argv[2]
 
+    logging.info(f"Iniciando bot '{nombre_grupo}' contra {base_url}")
+
     bot = TradingBot(nombre_grupo, base_url)
 
     # -----------------------------------------
@@ -36,7 +38,7 @@ def main():
 
     if not bot.autenticar():
 
-        print("No se pudo autenticar.")
+        logging.error("No se pudo autenticar.")
         sys.exit(1)
 
     # -----------------------------------------
@@ -45,7 +47,7 @@ def main():
 
     if not bot.aceptar_reglas():
 
-        print("No se pudieron aceptar las reglas.")
+        logging.error("No se pudieron aceptar las reglas.")
         sys.exit(1)
 
     # -----------------------------------------
@@ -54,18 +56,20 @@ def main():
 
     monitor_thread = threading.Thread(
         target=bot.monitor_mercado,
+        name="MonitorMercado",
         daemon=True
     )
 
     trading_thread = threading.Thread(
         target=bot.trading_loop,
+        name="TradingLoop",
         daemon=True
     )
 
     monitor_thread.start()
     trading_thread.start()
 
-    logging.info("Bot iniciado correctamente.")
+    logging.info(f"Bot iniciado con 2 threads: {monitor_thread.name}, {trading_thread.name}")
 
     # -----------------------------------------
     # LOOP PRINCIPAL
@@ -73,14 +77,33 @@ def main():
 
     try:
 
-        while True:
+        while bot.running:
             time.sleep(1)
 
     except KeyboardInterrupt:
 
-        logging.warning("Bot detenido manualmente.")
+        logging.warning("Bot detenido manualmente (Ctrl+C).")
+
+    finally:
 
         bot.running = False
+
+        # Esperar a que los threads terminen
+        monitor_thread.join(timeout=5)
+        trading_thread.join(timeout=5)
+
+        # Resumen final
+        portfolio = bot.obtener_portfolio()
+
+        if portfolio:
+            logging.info("========== RESUMEN FINAL ==========")
+            logging.info(f"  Capital:     {portfolio.get('capital', '?')}")
+            logging.info(f"  Patrimonio:  {portfolio.get('patrimonio', '?')}")
+            logging.info(f"  Activos:     {portfolio.get('activos', {})}")
+            logging.info(f"  Comisiones:  {portfolio.get('comisiones_pagadas', '?')}")
+            logging.info("====================================")
+
+        logging.info("Bot finalizado.")
 
 
 if __name__ == "__main__":
