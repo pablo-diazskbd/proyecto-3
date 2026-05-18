@@ -17,4 +17,6 @@ python fake_server.py
 En otro terminal:
 
 cd proyecto-3
-python main.py grupo-3 http://127.0.0.1:5000
+python main.py grupo-3 http://127.0.0.1:5000 (esto para pruebas locales)
+
+codigo para EP: python main.py grupo-30 https://domusai.com
